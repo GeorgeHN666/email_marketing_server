@@ -20,9 +20,12 @@ func HandlerRoutes() http.Handler {
 	}))
 
 	mux.Post("/admin", handlers.NewAdmin)
-	mux.Post("/client", handlers.NewClientEP)
-	mux.Post("/campaing", handlers.InsertCampaingEP)
-	mux.Post("/schedule", handlers.InsertScheduleEP)
+	mux.Post("/new_client", handlers.NewClientEP)
+	mux.Post("/new_campaing", handlers.InsertCampaingEP)
+	mux.Post("/new_schedule", handlers.InsertScheduleEP)
+
+	mux.Get("/clients", handlers.GetClients)
+	mux.Get("/clien", handlers.GetClient)
 
 	mux.Get("/img", middlewares.Ema(handlers.ServeImage))
 

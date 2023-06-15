@@ -127,6 +127,50 @@ func DeleteClientEP(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func GetClients(w http.ResponseWriter, r *http.Request) {
+
+	w.Header().Set("Content-Type", "application/json")
+
+	user, err := db.NewDBConn(db.Config{URI: DATABASE_URI, Database: DATABASE_NAME}).GetClients()
+	if err != nil {
+		http.Error(w, err.Error(), ServerError)
+		return
+	}
+
+	var response struct {
+		Error   bool             `json:"error"`
+		Message string           `json:"message"`
+		Clients []*models.Client `json:"clients"`
+	}
+	response.Error = false
+	response.Message = "Clients founded"
+	response.Clients = user
+
+	utils.WriteJSON(w, r, response, OK)
+}
+
+func GetClient(w http.ResponseWriter, r *http.Request) {
+
+	w.Header().Set("Content-Type", "application/json")
+
+	client, err := db.NewDBConn(db.Config{URI: DATABASE_URI, Database: DATABASE_NAME}).GetClient(r.URL.Query().Get("zkmi"))
+	if err != nil {
+		http.Error(w, err.Error(), ServerError)
+		return
+	}
+
+	var response struct {
+		Error   bool           `json:"error"`
+		Message string         `json:"message"`
+		Clients *models.Client `json:"clients"`
+	}
+	response.Error = false
+	response.Message = "Clients founded"
+	response.Clients = client
+
+	utils.WriteJSON(w, r, response, OK)
+}
+
 // Create new campaing
 func InsertCampaingEP(w http.ResponseWriter, r *http.Request) {
 
