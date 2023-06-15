@@ -1,0 +1,46 @@
+package main
+
+/*
+import (
+	"fmt"
+	"time"
+)
+
+var done = make(chan bool)
+
+func NewTimer(year int, month time.Month, day int, hour int, min int, sec int, nan int, local *time.Location) *time.Timer {
+	dur := time.Date(year, month, day, hour, min, sec, nan, local)
+	timer := time.NewTimer(time.Until(dur))
+
+	return timer
+}
+
+func main() {
+
+	// Perform other tasks while the timer runs in the background
+	// ...
+	timer := NewTimer(2023, time.June, 10, 8, 48, 0, 0, time.Local)
+
+	go Timer(timer)
+
+	for i := 0; i < 90; i++ {
+		fmt.Println("Doing other tasks")
+		time.Sleep(2 * time.Second)
+
+	}
+
+	<-done
+	// Blocking operation until the timer function is done
+	fmt.Println("Main function exiting.")
+}
+
+func Timer(timer *time.Timer) {
+	<-timer.C // Blocking operation until the timer expires
+	fmt.Println("Time launched, ", time.Now())
+	for i := 0; i < 5; i++ {
+		fmt.Println("Sending email to users")
+		time.Sleep(1 * time.Second)
+	}
+	done <- true
+}
+*/

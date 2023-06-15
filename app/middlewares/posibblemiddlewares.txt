@@ -1,0 +1,4 @@
+1. Check how many people saw the email as well as the best time. by each email and which email performs better 
+2. Check the emails sended
+3. Check which campaing performs better 
+ 

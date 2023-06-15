@@ -1,0 +1,76 @@
+package main
+
+import (
+	"encoding/csv"
+	"fmt"
+	"net/http"
+)
+
+type Person struct {
+	FirstName string
+	LastName  string
+	Email     string
+}
+
+func main() {
+	// Download the CSV file
+	url := "https://assets.zkaia.com/test.csv"
+	records, err := downloadCSV(url)
+	if err != nil {
+		fmt.Println("Error downloading CSV:", err)
+		return
+	}
+
+	// Process the CSV records
+	people, err := processCSV(records)
+	if err != nil {
+		fmt.Println("Error processing CSV:", err)
+		return
+	}
+
+	// Print the extracted data
+	for i, person := range people {
+		fmt.Printf("person with index %v : %v\n", i, person)
+	}
+}
+
+// Download the CSV file from the specified URL
+func downloadCSV(url string) ([][]string, error) {
+	response, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+
+	reader := csv.NewReader(response.Body)
+	records, err := reader.ReadAll()
+	if err != nil {
+		return nil, err
+	}
+
+	return records, nil
+}
+
+// Process the CSV records and extract the desired fields into a struct
+func processCSV(records [][]string) ([]Person, error) {
+	people := make([]Person, 0, len(records)-1) // Exclude the header row
+
+	for i, record := range records {
+		if i == 0 { // Skip the header row
+			continue
+		}
+
+		if len(record) < 3 { // Ensure the record has at least three fields
+			continue
+		}
+
+		person := Person{
+			FirstName: record[0],
+			LastName:  record[1],
+			Email:     record[2],
+		}
+		people = append(people, person)
+	}
+
+	return people, nil
+}
