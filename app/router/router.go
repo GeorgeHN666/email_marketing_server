@@ -23,9 +23,19 @@ func HandlerRoutes() http.Handler {
 	mux.Post("/new_client", handlers.NewClientEP)
 	mux.Post("/new_campaing", handlers.InsertCampaingEP)
 	mux.Post("/new_schedule", handlers.InsertScheduleEP)
+	mux.Get("/del_campaing", handlers.DeleteCampaingEP)
+
+	mux.Post("/store_template", handlers.StoreTemplate)
+	mux.Post("/store_audience", handlers.StoreAudience)
 
 	mux.Get("/clients", handlers.GetClients)
-	mux.Get("/clien", handlers.GetClient)
+	mux.Get("/client", handlers.GetClient)
+
+	mux.Get("/campaings", handlers.GetCampaings)
+
+	mux.Get("/schedules", handlers.GetSchedules)
+	mux.Get("/del_schedules", handlers.DeleteScheduleEP)
+	mux.Get("/del_client", handlers.DeleteClientEP)
 
 	mux.Get("/img", middlewares.Ema(handlers.ServeImage))
 

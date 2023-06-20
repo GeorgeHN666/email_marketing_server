@@ -52,7 +52,7 @@ func EmailVisit(next http.HandlerFunc) http.HandlerFunc {
 
 		// Store the records on the database
 		reg := &models.Reg{
-			TimeVisited: time.Now().Local(),
+			TimeVisited: time.Now().Local().Unix(),
 		}
 
 		d := SetDatabase()

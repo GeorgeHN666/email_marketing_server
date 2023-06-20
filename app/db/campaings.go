@@ -17,7 +17,7 @@ func (s *DB) InsertCampaing(c models.Campaing) error {
 
 	db := s.Conn.Database(s.config.Database).Collection("campaings")
 
-	c.Issued = time.Now()
+	c.Issued = time.Now().Local().Unix()
 	c.ID = primitive.NewObjectID()
 	c.Status = Active
 
@@ -30,15 +30,17 @@ func (s *DB) InsertCampaing(c models.Campaing) error {
 }
 
 // Delete campaings
-func (s *DB) DeleteCampaing(c models.Campaing) error {
+func (s *DB) DeleteCampaing(id string) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*45)
 	defer cancel()
 
 	db := s.Conn.Database(s.config.Database).Collection("campaings")
 
+	i, _ := primitive.ObjectIDFromHex(id)
+
 	filter := bson.M{
-		"_id": bson.M{"$eq": c.ID},
+		"_id": bson.M{"$eq": i},
 	}
 
 	_, err := db.DeleteOne(ctx, filter)

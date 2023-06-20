@@ -39,7 +39,7 @@ func (s *DB) InsertClient(c models.Client) error {
 	db := s.Conn.Database(s.config.Database).Collection("clients")
 
 	c.ID = primitive.NewObjectID()
-	c.Since = time.Now()
+	c.Since = time.Now().Local().Unix()
 	c.Status = Active
 
 	_, err := db.InsertOne(ctx, c)
@@ -50,12 +50,14 @@ func (s *DB) InsertClient(c models.Client) error {
 	return nil
 }
 
-func (s *DB) DeleteClient(id primitive.ObjectID) error {
+func (s *DB) DeleteClient(i string) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*45)
 	defer cancel()
 
 	db := s.Conn.Database(s.config.Database).Collection("clients")
+
+	id, _ := primitive.ObjectIDFromHex(i)
 
 	filter := bson.M{
 		"_id": bson.M{"$eq": id},

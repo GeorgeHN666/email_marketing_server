@@ -118,13 +118,26 @@ func NewClientEP(w http.ResponseWriter, r *http.Request) {
 
 func DeleteClientEP(w http.ResponseWriter, r *http.Request) {
 	//  We will going to delete everything
+	err := ftp.NewFTPServer(ftp.Config{Addr: FTP_ADDR, User: FTP_USER, Password: FTP_PASS}).DelDir(fmt.Sprintf("%s/%s", FTP_PATH, r.URL.Query().Get("cpn")))
+	if err != nil {
+		http.Error(w, err.Error(), ServerError)
+		return
+	}
 
-	// Campaings
+	err = db.NewDBConn(db.Config{URI: DATABASE_URI, Database: DATABASE_NAME}).DeleteClient(r.URL.Query().Get("i"))
+	if err != nil {
+		http.Error(w, err.Error(), ServerError)
+		return
+	}
 
-	// Schedules
+	var response struct {
+		Error   bool   `json:"error"`
+		Message string `json:"message"`
+	}
+	response.Error = false
+	response.Message = "Clients founded"
 
-	// FTP FILES
-
+	utils.WriteJSON(w, r, response, OK)
 }
 
 func GetClients(w http.ResponseWriter, r *http.Request) {
@@ -162,7 +175,7 @@ func GetClient(w http.ResponseWriter, r *http.Request) {
 	var response struct {
 		Error   bool           `json:"error"`
 		Message string         `json:"message"`
-		Clients *models.Client `json:"clients"`
+		Clients *models.Client `json:"client"`
 	}
 	response.Error = false
 	response.Message = "Clients founded"
@@ -201,12 +214,6 @@ func InsertCampaingEP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = ftp.NewFTPServer(ftp.Config{Addr: FTP_ADDR, User: FTP_USER, Password: FTP_PASS}).CreateDir(fmt.Sprintf("%s/%s/campaings/%s/audience", FTP_PATH, campaing.CompanyName, campaing.CampaingName))
-	if err != nil {
-		http.Error(w, err.Error(), ServerError)
-		return
-	}
-
 	var response struct {
 		Error   bool   `json:"error"`
 		Message string `json:"message"`
@@ -218,7 +225,57 @@ func InsertCampaingEP(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func DeleteCampaingEP(w http.ResponseWriter, r *http.Request) {}
+func GetCampaings(w http.ResponseWriter, r *http.Request) {
+
+	campaings, err := db.NewDBConn(db.Config{URI: DATABASE_URI, Database: DATABASE_NAME}).GetCampaings(r.URL.Query().Get("ains"))
+	if err != nil {
+		http.Error(w, err.Error(), ServerError)
+		return
+	}
+
+	var response struct {
+		Error     bool               `json:"error"`
+		Message   string             `json:"message"`
+		Campaings []*models.Campaing `json:"campaings"`
+	}
+	response.Error = false
+	response.Message = "Clients founded"
+	response.Campaings = campaings
+
+	utils.WriteJSON(w, r, response, OK)
+
+}
+
+func DeleteCampaingEP(w http.ResponseWriter, r *http.Request) {
+
+	id := r.URL.Query().Get("id")
+	cpn := r.URL.Query().Get("cpn")
+	name := r.URL.Query().Get("name")
+
+	err := db.NewDBConn(db.Config{URI: DATABASE_URI, Database: DATABASE_NAME}).DeleteCampaing(id)
+	if err != nil {
+		http.Error(w, err.Error(), ServerError)
+		return
+	}
+
+	// Delete the ftp folders
+	err = ftp.NewFTPServer(ftp.Config{Addr: FTP_ADDR, User: FTP_USER, Password: FTP_PASS}).DelDir(fmt.Sprintf("%s/%s/campaings/%s", FTP_PATH, cpn, name))
+	if err != nil {
+		http.Error(w, err.Error(), ServerError)
+		return
+	}
+
+	var response struct {
+		Error   bool   `json:"error"`
+		Message string `json:"message"`
+	}
+
+	response.Error = false
+	response.Message = "Campaing created successfuly"
+
+	utils.WriteJSON(w, r, response, http.StatusCreated)
+
+}
 
 // Create new schedule
 func InsertScheduleEP(w http.ResponseWriter, r *http.Request) {
@@ -251,18 +308,127 @@ func InsertScheduleEP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	err = ftp.NewFTPServer(ftp.Config{Addr: FTP_ADDR, User: FTP_USER, Password: FTP_PASS}).CreateDir(fmt.Sprintf("%s/%s/campaings/%s/%s/audience", FTP_PATH, schedule.CompanyName, schedule.CampaingName, schedule.Name))
+	if err != nil {
+		http.Error(w, err.Error(), ServerError)
+		return
+	}
+
 	var response struct {
 		Error   bool   `json:"error"`
 		Message string `json:"message"`
 	}
 	response.Error = false
-	response.Message = "Campaing created successfuly"
+	response.Message = "schedule created successfuly"
 
 	utils.WriteJSON(w, r, response, http.StatusCreated)
 
 }
 
-func DeleteScheduleEP(w http.ResponseWriter, r *http.Request) {}
+func StoreTemplate(w http.ResponseWriter, r *http.Request) {
+
+	w.Header().Set("Content-Type", "multipart/form-data")
+
+	r.ParseMultipartForm(128)
+	_, file, err := r.FormFile("template")
+	if err != nil {
+		http.Error(w, err.Error(), ServerError)
+		return
+	}
+
+	cpn := r.FormValue("cpn")
+	cn := r.FormValue("cn")
+	name := r.FormValue("name")
+
+	msg, err := ftp.NewFTPServer(ftp.Config{Addr: FTP_ADDR, User: FTP_USER, Password: FTP_PASS}).AddFile(fmt.Sprintf("%s/%s/campaings/%s/%s/template/", FTP_PATH, cpn, cn, name), file)
+	if err != nil {
+		http.Error(w, err.Error(), ServerError)
+		return
+	}
+
+	var response struct {
+		Error   bool   `json:"error"`
+		Message string `json:"message"`
+	}
+	response.Error = false
+	response.Message = msg
+
+	utils.WriteJSON(w, r, response, http.StatusCreated)
+}
+
+func StoreAudience(w http.ResponseWriter, r *http.Request) {
+
+	w.Header().Set("Content-Type", "multipart/form-data")
+
+	r.ParseMultipartForm(128)
+	_, file, err := r.FormFile("audience")
+	if err != nil {
+		http.Error(w, err.Error(), ServerError)
+		return
+	}
+
+	cpn := r.FormValue("cpn")
+	cn := r.FormValue("cn")
+	name := r.FormValue("name")
+
+	msg, err := ftp.NewFTPServer(ftp.Config{Addr: FTP_ADDR, User: FTP_USER, Password: FTP_PASS}).AddFile(fmt.Sprintf("%s/%s/campaings/%s/%s/audience", FTP_PATH, cpn, cn, name), file)
+	if err != nil {
+		http.Error(w, err.Error(), ServerError)
+		return
+	}
+
+	var response struct {
+		Error   bool   `json:"error"`
+		Message string `json:"message"`
+	}
+	response.Error = false
+	response.Message = msg
+
+	utils.WriteJSON(w, r, response, http.StatusCreated)
+}
+
+func GetSchedules(w http.ResponseWriter, r *http.Request) {
+	schedules, err := db.NewDBConn(db.Config{URI: DATABASE_URI, Database: DATABASE_NAME}).GetSchedules(r.URL.Query().Get("ins"))
+	if err != nil {
+		http.Error(w, err.Error(), ServerError)
+		return
+	}
+
+	var response struct {
+		Error     bool               `json:"error"`
+		Message   string             `json:"message"`
+		Schedules []*models.Schedule `json:"schedules"`
+	}
+	response.Error = false
+	response.Message = "Clients founded"
+	response.Schedules = schedules
+
+	utils.WriteJSON(w, r, response, OK)
+}
+
+func DeleteScheduleEP(w http.ResponseWriter, r *http.Request) {
+
+	err := ftp.NewFTPServer(ftp.Config{Addr: FTP_ADDR, User: FTP_USER, Password: FTP_PASS}).DelDir(fmt.Sprintf("%s/%s/campaings/%s/%s", FTP_PATH, r.URL.Query().Get("cpn"), r.URL.Query().Get("cn"), r.URL.Query().Get("name")))
+	if err != nil {
+		http.Error(w, err.Error(), ServerError)
+		return
+	}
+
+	err = db.NewDBConn(db.Config{URI: DATABASE_URI, Database: DATABASE_NAME}).DeleteSchedules(r.URL.Query().Get("i"))
+	if err != nil {
+		http.Error(w, err.Error(), ServerError)
+		return
+	}
+
+	var response struct {
+		Error   bool   `json:"error"`
+		Message string `json:"message"`
+	}
+	response.Error = false
+	response.Message = "Clients founded"
+
+	utils.WriteJSON(w, r, response, OK)
+}
 
 // StoreFile
 func AddFileEP(w http.ResponseWriter, r *http.Request) {}
@@ -272,7 +438,7 @@ func DeleteFileEP(w http.ResponseWriter, r *http.Request) {}
 func GetFileList(w http.ResponseWriter, r *http.Request) {}
 
 // Image Middleware
-func ServeImage(w http.ResponseWriter, r *http.Request) {
+func ServeImage(w http.ResponseWriter, _ *http.Request) {
 	fmt.Println("@inside the actual func")
 
 	data, err := downloadFile("https://images.pexels.com/photos/16664503/pexels-photo-16664503/free-photo-of-woman-in-hat-posing-on-shallow-water.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2")

@@ -37,16 +37,25 @@ func (s *FTPServer) CreateDir(path string) error {
 	return s.Conn.MakeDir(path)
 }
 
+func (s *FTPServer) DelDir(path string) error {
+	return s.Conn.RemoveDirRecur(path)
+}
+
 func (s *FTPServer) AddFile(path string, file *multipart.FileHeader) (string, error) {
 	fileContent, err := file.Open()
+	if err != nil {
+		fmt.Println("Error Here")
+		return "", err
+	}
+
+	err = s.Conn.ChangeDir(path)
 	if err != nil {
 		return "", err
 	}
 
-	s.Conn.ChangeDir(path)
-
 	err = s.Conn.Stor(file.Filename, fileContent)
 	if err != nil {
+		s.Conn.Quit()
 		return "", err
 	}
 

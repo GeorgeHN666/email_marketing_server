@@ -18,7 +18,7 @@ func (s *DB) InsertSchedules(c models.Schedule) error {
 	db := s.Conn.Database(s.config.Database).Collection("schedules")
 
 	c.ID = primitive.NewObjectID()
-	c.Issued = time.Now()
+	c.Issued = time.Now().Local().Unix()
 	c.Status = Active
 
 	_, err := db.InsertOne(ctx, c)
@@ -30,15 +30,17 @@ func (s *DB) InsertSchedules(c models.Schedule) error {
 }
 
 // Delete Schedules
-func (s *DB) DeleteSchedules(c models.Schedule) error {
+func (s *DB) DeleteSchedules(i string) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*45)
 	defer cancel()
 
 	db := s.Conn.Database(s.config.Database).Collection("schedules")
 
+	id, _ := primitive.ObjectIDFromHex(i)
+
 	filter := bson.M{
-		"_id": bson.M{"$eq": c.ID},
+		"_id": bson.M{"$eq": id},
 	}
 
 	_, err := db.DeleteOne(ctx, filter)
@@ -60,7 +62,7 @@ func (s *DB) GetSchedules(i string) ([]*models.Schedule, error) {
 	var result []*models.Schedule
 
 	filter := bson.M{
-		"client_id": bson.M{"$eq": id},
+		"campaing_id": bson.M{"$eq": id},
 	}
 
 	op := options.Find().SetSort(bson.M{"issued": -1})

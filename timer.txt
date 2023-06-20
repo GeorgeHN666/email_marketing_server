@@ -1,46 +1,135 @@
 package main
 
-/*
 import (
 	"fmt"
+	"net/http"
+	"strconv"
 	"time"
 )
 
-var done = make(chan bool)
-
-func NewTimer(year int, month time.Month, day int, hour int, min int, sec int, nan int, local *time.Location) *time.Timer {
-	dur := time.Date(year, month, day, hour, min, sec, nan, local)
-	timer := time.NewTimer(time.Until(dur))
-
-	return timer
-}
+var timers = make(map[string]*time.Timer)
 
 func main() {
+	http.HandleFunc("/start", handleStartTimer)
+	http.HandleFunc("/cancel", handleCancelTimer)
 
-	// Perform other tasks while the timer runs in the background
-	// ...
-	timer := NewTimer(2023, time.June, 10, 8, 48, 0, 0, time.Local)
-
-	go Timer(timer)
-
-	for i := 0; i < 90; i++ {
-		fmt.Println("Doing other tasks")
-		time.Sleep(2 * time.Second)
-
-	}
-
-	<-done
-	// Blocking operation until the timer function is done
-	fmt.Println("Main function exiting.")
+	fmt.Println("Server listening on port 8080...")
+	http.ListenAndServe(":8080", nil)
 }
 
-func Timer(timer *time.Timer) {
-	<-timer.C // Blocking operation until the timer expires
-	fmt.Println("Time launched, ", time.Now())
-	for i := 0; i < 5; i++ {
-		fmt.Println("Sending email to users")
-		time.Sleep(1 * time.Second)
+func handleStartTimer(w http.ResponseWriter, r *http.Request) {
+	name := r.FormValue("name")
+
+	if name == "" {
+		http.Error(w, "Invalid name", http.StatusBadRequest)
+		return
 	}
-	done <- true
+
+	go startTimer(name)
+	fmt.Fprintf(w, "Timer '%s' started.\n", name)
 }
-*/
+
+func handleCancelTimer(w http.ResponseWriter, r *http.Request) {
+	name := r.FormValue("name")
+
+	if name == "" {
+		http.Error(w, "Invalid name", http.StatusBadRequest)
+		return
+	}
+
+	cancelTimer(name)
+	fmt.Fprintf(w, "Timer '%s' canceled.\n", name)
+}
+
+func startTimer(name string) {
+	timer := time.NewTimer(30 * time.Second)
+
+	select {
+	case <-timer.C:
+		fmt.Printf("Timer '%s' completed.\n", name)
+	case <-time.After(time.Millisecond):
+		timers[name] = timer
+	}
+}
+
+func cancelTimer(name string) {
+	timer, exists := timers[name]
+	if exists {
+		if !timer.Stop() {
+			<-timer.C
+		}
+		delete(timers, name)
+		fmt.Printf("Timer '%s' canceled.\n", name)
+	} else {
+		fmt.Printf("Timer '%s' does not exist.\n", name)
+	}
+}
+
+ANOTHER WAY
+
+package main
+
+import (
+	"fmt"
+	"net/http"
+	"strconv"
+	"time"
+)
+
+var timers = make(map[string]*time.Timer)
+
+func main() {
+	http.HandleFunc("/start", handleStartTimer)
+	http.HandleFunc("/cancel", handleCancelTimer)
+
+	fmt.Println("Server listening on port 8080...")
+	http.ListenAndServe(":8080", nil)
+}
+
+func handleStartTimer(w http.ResponseWriter, r *http.Request) {
+	name := r.FormValue("name")
+
+	if name == "" {
+		http.Error(w, "Invalid name", http.StatusBadRequest)
+		return
+	}
+
+	go startTimer(name)
+	fmt.Fprintf(w, "Timer '%s' started.\n", name)
+}
+
+func handleCancelTimer(w http.ResponseWriter, r *http.Request) {
+	name := r.FormValue("name")
+
+	if name == "" {
+		http.Error(w, "Invalid name", http.StatusBadRequest)
+		return
+	}
+
+	cancelTimer(name)
+	fmt.Fprintf(w, "Timer '%s' canceled.\n", name)
+}
+
+func startTimer(name string) {
+	timer := time.NewTimer(30 * time.Second)
+
+	select {
+	case <-timer.C:
+		fmt.Printf("Timer '%s' completed.\n", name)
+	case <-time.After(time.Millisecond):
+		timers[name] = timer
+	}
+}
+
+func cancelTimer(name string) {
+	timer, exists := timers[name]
+	if exists {
+		if !timer.Stop() {
+			<-timer.C
+		}
+		delete(timers, name)
+		fmt.Printf("Timer '%s' canceled.\n", name)
+	} else {
+		fmt.Printf("Timer '%s' does not exist.\n", name)
+	}
+}
